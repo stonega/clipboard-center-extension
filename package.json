@@ -1,0 +1,17 @@
+{
+    "name": "clipboard-center-extension",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "test": "bun test",
+        "lint": "biome check .",
+        "check": "bun run lint && bun test && glib-compile-schemas --strict --dry-run schemas",
+        "build": "bash scripts/build.sh",
+        "install:extension": "bash scripts/install.sh",
+        "test:shell": "bash scripts/test-shell.sh"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "2.5.15"
+    }
+}

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.clipboard-center" path="/org/gnome/shell/extensions/clipboard-center/">
+    <key name="paused" type="b">
+      <default>false</default>
+      <summary>Pause clipboard recording</summary>
+    </key>
+    <key name="capture-images" type="b">
+      <default>true</default>
+      <summary>Include copied images</summary>
+    </key>
+    <key name="history-limit" type="i">
+      <range min="5" max="200"/>
+      <default>50</default>
+      <summary>Maximum number of regular clipboard history items, excluding favorites</summary>
+    </key>
+  </schema>
+</schemalist>

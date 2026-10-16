@@ -1,0 +1,60 @@
+.clipboard-center-column .clipboard-center-notifications {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.clipboard-center-section {
+    spacing: 0;
+    margin-bottom: 12px;
+}
+
+.clipboard-center-section:ltr {
+    margin-right: 12px;
+}
+
+.clipboard-center-section:rtl {
+    margin-left: 12px;
+}
+
+.clipboard-center-expand-cover {
+    border: 2px solid transparent;
+    border-radius: 18px;
+}
+
+.clipboard-center-expand-cover:focus {
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.clipboard-center-search {
+    margin: 0 4px 4px;
+    padding: 8px 12px;
+    min-height: 18px;
+}
+
+.clipboard-center-items {
+    spacing: 8px;
+}
+
+.clipboard-center-stack .clipboard-center-back-1 {
+    margin: 6px 5px 0;
+}
+
+.clipboard-center-stack .clipboard-center-back-2 {
+    margin: 12px 10px 0;
+}
+
+.clipboard-center-message {
+    border-radius: 18px;
+}
+
+.clipboard-center-image-preview {
+    padding: 8px;
+}
+
+.clipboard-center-empty {
+    padding: 18px 12px;
+    opacity: 0.6;
+    font-size: 0.95em;
+}

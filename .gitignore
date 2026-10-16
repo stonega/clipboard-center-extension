@@ -1,0 +1,5 @@
+node_modules/
+dist/
+schemas/gschemas.compiled
+.codegraph/
+__pycache__/
