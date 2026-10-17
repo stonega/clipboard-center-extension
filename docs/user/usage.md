@@ -10,6 +10,10 @@ The stack expands and collapses with the same smooth timing as GNOME's
 notification groups, respecting your desktop animation setting.
 Expanded history has a Clipboard title and a collapse button above the search.
 The scrollbar stays hidden; use the mouse wheel or touchpad to scroll.
+Expanded stacks show up to 10 regular items per page. When more than 10 match,
+Previous and Next buttons and a page count appear below the scroll area.
+The buttons are hidden when the stack is collapsed. Searching or collapsing
+returns to page 1. Favorites stay above the stack and do not count toward its pages.
 Click the collapse button to return to the stack and clear the search while
 keeping the menu open. Press Escape or close the menu to collapse it as well.
 Keyboard users can focus the stack and press Enter or Space.
@@ -37,10 +41,15 @@ history without recording new copies. The history size applies to regular items;
 favorites stay until unfavorited or removed. All items share the 64 MiB memory
 budget. If favorites leave too little room for a new copy, it is not recorded.
 
-History, including favorites, lasts only while the extension is active and is cleared on screen lock,
-logout, or disable. Password manager hints are respected, but applications that
+History, including favorites and original image bytes, survives screen lock,
+logout, disable, and reboot. It is saved locally in
+`~/.local/share/clipboard-center/history.gv` (or `$XDG_DATA_HOME/clipboard-center/history.gv`).
+The directory and file are private to your account, but the data is not encrypted.
+Removing an entry also removes it from the saved history. Password manager hints are respected, but applications that
 do not mark secrets cannot be recognized automatically. Use pause for sensitive
 work.
 
 To disable: `gnome-extensions disable clipboard-center@stone.dev`.
 To remove: `gnome-extensions uninstall clipboard-center@stone.dev`.
+Uninstalling the extension leaves saved history in place. To erase it, disable
+the extension and delete the `clipboard-center` directory from your user data directory.

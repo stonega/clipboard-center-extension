@@ -1,7 +1,7 @@
 {
     "uuid": "clipboard-center@stone.dev",
     "name": "Clipboard Center",
-    "description": "Manage text and image clipboard history above the notifications in the date menu. Click the stack to expand, search, preview, and restore items. Keeps history locally in memory, supports pausing in preferences, and respects sensitive clipboard markers.",
+    "description": "Manage text and image clipboard history above the notifications in the date menu. Click the stack to expand, search, preview, and restore items. Saves history and favorites locally across restarts, supports pausing in preferences, and respects sensitive clipboard markers.",
     "shell-version": ["51"],
     "settings-schema": "org.gnome.shell.extensions.clipboard-center",
     "version": 1

@@ -10,14 +10,18 @@ widgets and your Shell theme.
 - Click the stack to expand history, then click a card to copy its original content.
 - Star favorites to keep them as standalone cards above the collapsed stack.
 - Browse or search history, and scroll without a visible scrollbar. Expand an image for a larger preview.
+- Page through expanded stacks 10 items at a time with Previous/Next buttons.
 - Remove individual entries, or pause recording in preferences.
 - Configure the regular history limit (5–200 items; default 50) and image capture.
+- Keep text, images, and favorites across screen lock, logout, and reboot.
 - Works with Wayland through Mutter's clipboard selection API.
 
 ![A favorite card above the regular clipboard stack](docs/user/favorites-preview.png)
 
-History and favorites stay in memory. Nothing is saved to disk or sent over the network.
-History is cleared when the extension stops, including on screen lock or logout.
+History and favorites are saved locally in `~/.local/share/clipboard-center/history.gv`
+(or under `$XDG_DATA_HOME` if set). The directory and file are accessible only to
+your account; the data is not encrypted. Nothing is sent over the network.
+Removing or clearing entries also updates saved history.
 Content marked sensitive by a password manager is skipped; unmarked secrets
 can still be recorded. Pause before copying sensitive content.
 
@@ -54,6 +58,7 @@ gnome-extensions prefs clipboard-center@stone.dev
 ## Development
 
 The extension has no runtime package dependencies. Bun and Biome are development tools only.
+The storage tests also require `gjs` to exercise real GNOME file I/O in separate processes.
 
 ```sh
 bun install --frozen-lockfile

@@ -10,6 +10,8 @@ import * as MessageList from 'resource:///org/gnome/shell/ui/messageList.js';
 import { ClipboardExpanderLayout, ClipboardStack, EXPANSION_TIME } from './expander.js';
 import { textPreview } from './history.js';
 
+const PAGE_SIZE = 10;
+
 const ClipboardMessage = GObject.registerClass(
     class ClipboardCenterMessage extends MessageList.Message {
         canClose() {
@@ -23,6 +25,8 @@ export class ClipboardSection {
         this._controller = controller;
         this._expanded = false;
         this._animating = false;
+        this._page = 0;
+        this._pageCount = 1;
         this.actor = new St.BoxLayout({
             orientation: Clutter.Orientation.VERTICAL,
             style_class: 'message-notification-group clipboard-center-section',
@@ -67,7 +71,11 @@ export class ClipboardSection {
             x_expand: true,
             primary_icon: new St.Icon({ icon_name: 'edit-find-symbolic', icon_size: 16 }),
         });
-        this._search.clutter_text.connect('text-changed', () => this._renderItems());
+        this._search.clutter_text.connect('text-changed', () => {
+            this._page = 0;
+            this._scroll.vadjustment.value = 0;
+            this._renderItems();
+        });
         this._controls.add_child(this._search);
 
         this._content = new St.BoxLayout({
@@ -117,6 +125,34 @@ export class ClipboardSection {
         });
         this.actor.add_child(this._scroll);
 
+        this._pagination = new St.BoxLayout({
+            style_class: 'clipboard-center-pagination',
+            x_expand: true,
+        });
+        this._previousPageButton = new St.Button({
+            style_class: 'button clipboard-center-page-button',
+            label: 'Previous',
+            accessible_name: 'Previous clipboard page',
+            can_focus: true,
+        });
+        this._previousPageButton.connect('clicked', () => this._changePage(-1));
+        this._pagination.add_child(this._previousPageButton);
+        this._pageLabel = new St.Label({
+            x_expand: true,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        this._pagination.add_child(this._pageLabel);
+        this._nextPageButton = new St.Button({
+            style_class: 'button clipboard-center-page-button',
+            label: 'Next',
+            accessible_name: 'Next clipboard page',
+            can_focus: true,
+        });
+        this._nextPageButton.connect('clicked', () => this._changePage(1));
+        this._pagination.add_child(this._nextPageButton);
+        this.actor.add_child(this._pagination);
+
         // Cover the whole collapsed stack, including card controls and exposed edges.
         this._expandCover = new St.Button({
             style_class: 'clipboard-center-expand-cover',
@@ -156,6 +192,7 @@ export class ClipboardSection {
         this._expanded = expanded;
         this._animating = animate && this.actor.mapped;
         if (!expanded) {
+            this._page = 0;
             this._search.set_text('');
             this._scroll.vadjustment.value = 0;
         }
@@ -203,6 +240,42 @@ export class ClipboardSection {
         this._renderItems(preserveMessages);
     }
 
+    _changePage(direction) {
+        const page = Math.max(0, Math.min(this._page + direction, this._pageCount - 1));
+        if (!this._expanded || page === this._page) return;
+        this._page = page;
+        this._scroll.vadjustment.value = 0;
+        this._renderItems(true);
+    }
+
+    _syncPagination() {
+        const focused = this._previousPageButton.has_key_focus()
+            ? this._previousPageButton
+            : this._nextPageButton.has_key_focus()
+              ? this._nextPageButton
+              : null;
+        this._pagination.visible = this._expanded && this._pageCount > 1;
+        this._pageLabel.text = `Page ${this._page + 1} of ${this._pageCount}`;
+        for (const [button, enabled] of [
+            [this._previousPageButton, this._page > 0],
+            [this._nextPageButton, this._page < this._pageCount - 1],
+        ]) {
+            button.reactive = enabled;
+            button.can_focus = enabled && this._pagination.visible;
+            button.opacity = enabled ? 255 : 128;
+        }
+        if (focused && (!this._pagination.visible || !focused.reactive)) {
+            if (this._pagination.visible) {
+                (this._nextPageButton.reactive
+                    ? this._nextPageButton
+                    : this._previousPageButton
+                ).grab_key_focus();
+            } else if (this._expanded) {
+                this._search.grab_key_focus();
+            }
+        }
+    }
+
     _renderItems(preserveMessages = false) {
         const previous = new Map();
         for (const container of [this._items, this._favorites]) {
@@ -218,7 +291,16 @@ export class ClipboardSection {
         const matches = this._controller.history.search(this._search.get_text());
         const favorites = matches.filter((item) => item.favorite);
         const items = matches.filter((item) => !item.favorite);
-        const shown = this._expanded || this._animating ? items : items.slice(0, 1);
+        this._pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+        if (this._page >= this._pageCount) {
+            this._page = this._pageCount - 1;
+            this._scroll.vadjustment.value = 0;
+        }
+        const shown =
+            this._expanded || this._animating
+                ? items.slice(this._page * PAGE_SIZE, (this._page + 1) * PAGE_SIZE)
+                : items.slice(0, 1);
+        this._syncPagination();
         const depth = Math.min(2, Math.max(0, items.length - 1));
         this._backCards[0].visible = !this._expanded && !this._animating && depth === 2;
         this._backCards[1].visible = !this._expanded && !this._animating && depth >= 1;

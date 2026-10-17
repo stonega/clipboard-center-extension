@@ -36,9 +36,9 @@ export default class ClipboardCenterPreferences extends ExtensionPreferences {
         const privacy = new Adw.PreferencesGroup({ title: 'Stored on this desktop' });
         privacy.add(
             new Adw.ActionRow({
-                title: 'History stays in memory',
+                title: 'History survives restarts',
                 subtitle:
-                    'Nothing is written to disk or sent over the network. History is cleared when the extension stops, including when the screen locks.',
+                    'Text, images, and favorites are saved locally without encryption, with access restricted to your account. History survives screen lock, logout, and reboot. Nothing is sent over the network.',
                 subtitle_lines: 0,
             }),
         );

@@ -19,12 +19,11 @@
 }
 
 .clipboard-center-expand-cover {
-    border: 2px solid transparent;
     border-radius: 18px;
 }
 
 .clipboard-center-expand-cover:focus {
-    border-color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.08);
 }
 
 .clipboard-center-search {
@@ -35,6 +34,15 @@
 
 .clipboard-center-items {
     spacing: 8px;
+}
+
+.clipboard-center-pagination {
+    spacing: 8px;
+    margin: 8px 4px 0;
+}
+
+.clipboard-center-page-button {
+    padding: 6px 12px;
 }
 
 .clipboard-center-stack .clipboard-center-back-1 {

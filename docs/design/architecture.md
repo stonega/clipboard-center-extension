@@ -15,10 +15,18 @@ GTK and Adwaita are used only in the separate preferences process.
 - `src/history.js` provides the GNOME-independent model: MIME selection,
   sensitive markers, deduplication, ordering, favorites, searching, and memory
   eviction. Favorite status survives recapture and copying the same item.
+- `src/storage.js` restores and saves original bytes, MIME types, capture times,
+  order, and favorite flags in a versioned binary GVariant snapshot. Reads are
+  asynchronous and bounded to 65 MiB including metadata; invalid records are
+  skipped and corrupt snapshots start empty. Content IDs are rebuilt from bytes.
+  Writes are coalesced for 150 ms, use a private temporary file, and atomically
+  replace the snapshot only if it is current. Disable cancels pending I/O and
+  synchronously flushes any unsaved changes before releasing history.
 - `src/section.js` builds the native message cards and a collapsed visual stack.
   A focusable cover expands the stack on activation, keeping the collapsed cards
   from copying or handling their controls. The cover forwards hover to the top
-  card so the whole stack uses Shell's native card highlight. Card controls are
+  card so the whole stack uses Shell's native card highlight. Keyboard focus
+  adds a subtle fill to the cover without drawing an extra border. Card controls are
   ordered preview arrow, favorite star, then close. Expanded history shows a
   Clipboard title and Shell's native group collapse button above search. The button
   collapses history, clears search, and returns focus to the stack while keeping
@@ -27,7 +35,11 @@ GTK and Adwaita are used only in the separate preferences process.
   scrollbar while preserving scrolling. Favorites appear once as standalone
   message cards above the regular stack, and can be copied, unfavorited, or
   removed while the stack is collapsed. A shared scroll view bounds both
-  favorites and regular history. Search filters both groups.
+  favorites and regular history. Search filters both groups. Expanded regular
+  history is paginated in groups of 10 matching items. A fixed footer outside the
+  scroll view shows Previous/Next buttons and the page count only when expanded
+  with multiple pages. Search and collapse reset to page 1; history changes clamp
+  the current page to the remaining range. Favorites are not paginated.
   Image thumbnails use `Gio.BytesIcon`; original bytes are retained for copying.
 - `src/expander.js` interpolates card positions and preferred heights with an
   animatable layout property, following Shell 51's `NotificationMessageGroup`
@@ -58,10 +70,18 @@ Restoring an item creates a `Meta.SelectionSourceMemory` using its original
 bytes. The monitor recognizes its own source and avoids duplicate captures.
 Mutter retains the active selection so it remains pasteable after disable.
 
-All history, including favorite status, is held in process memory. Disabling disconnects signals, cancels
-transfers, clears history, destroys extension actors, and restores notifications.
-The extension uses the default user session mode; locking disables it and clears
-history. No clipboard data is written to disk, logged, or sent to a service.
+History is restored before capturing the current clipboard, so startup cannot
+overwrite saved entries or lose favorites. Current history limits also apply to
+restored entries. Removing, clearing, reordering, favoriting, and changing the
+history limit all update the snapshot.
+
+Disabling disconnects signals, cancels transfers and disk reads, flushes saved
+history, clears process memory, destroys extension actors, and restores
+notifications. The extension uses the default user session mode; locking disables
+it, and unlocking restores saved history. Data survives logout and reboot.
+The snapshot lives at `$XDG_DATA_HOME/clipboard-center/history.gv` (normally
+`~/.local/share/clipboard-center/history.gv`), with directory mode 0700 and file
+mode 0600. It is not encrypted. Clipboard data is never logged or sent to a service.
 
 ## Compatibility
 

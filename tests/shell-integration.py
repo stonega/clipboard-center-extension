@@ -4,6 +4,7 @@ import glob
 import os
 import subprocess
 import struct
+import sys
 import time
 import zlib
 from pathlib import Path
@@ -48,6 +49,13 @@ def set_text(text):
     evaluate(f"const St = (await import('gi://St')).default; St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, {json.dumps(text)});")
 
 
+def restart_extension():
+    evaluate('await Main.extensionManager.disableExtension("clipboard-center@stone.dev");')
+    wait_for('return ext._controller === null;')
+    evaluate('await Main.extensionManager.enableExtension("clipboard-center@stone.dev");')
+    wait_for('return ext._controller && !ext._controller._loading;')
+
+
 def point_at(actor, bottom_edge=False):
     # Allow the virtual seat to update both axes before delivering button events.
     for _ in range(2):
@@ -73,6 +81,18 @@ def press_key(key):
 
 
 wait_for('return !!ext?._section;')
+if '--verify-persistence' in sys.argv:
+    wait_for('return !ext._controller._loading;')
+    evaluate('const Clutter = (await import("gi://Clutter")).default; const seat = global.stage.context.get_backend().get_default_seat(); global.clipboardCenterTestKeyboard = seat.create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE); Main.overview.hide();')
+    wait_for('return !Main.layoutManager._startingUp && !Main.overview.animationInProgress;')
+    check('history restores in a fresh Shell process without a clipboard owner', 'return ext._controller.history.items.length === 3 && ext._controller.history.items[0].text === "Regular reboot fixture" && ext._controller.history.items[1].kind === "image" && ext._controller.history.items[2].text === "Favorite reboot fixture 世界" && ext._controller.history.items[2].favorite && ext._section._favorites.get_n_children() === 1;')
+    evaluate('ext._controller.copy(ext._controller.history.items[1]);')
+    expected_image = (Path(os.environ['CLIPBOARD_CENTER_TEST_DIR']) / 'fixture.png').read_bytes()
+    assert subprocess.check_output(['wl-paste', '--type', 'image/png'], timeout=5) == expected_image
+    print('PASS original image bytes survive a full Shell process restart', flush=True)
+    evaluate('ext._controller.clear();')
+    sys.exit(0)
+
 evaluate('const Clutter = (await import("gi://Clutter")).default; const seat = global.stage.context.get_backend().get_default_seat(); global.clipboardCenterTestKeyboard = seat.create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE); global.clipboardCenterTestPointer = seat.create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE); Main.overview.hide(); ext._controller.clear(); Main.messageTray.getSources().forEach(source => source.destroy());')
 wait_for('return !Main.layoutManager._startingUp && !Main.overview.animationInProgress;')
 evaluate('await Main.extensionManager.disableExtension("clipboard-center@stone.dev"); console.log("CLIPBOARD_TEST_BASELINE_OPEN"); Main.panel.statusArea.dateMenu.menu.open();')
@@ -289,6 +309,57 @@ check('delete removes an item', 'return ext._controller.history.items.length ===
 evaluate('ext._controller.clear();')
 check('clear empties history', 'return ext._controller.history.items.length === 0;')
 
+# Pagination applies to the expanded regular stack, with a fixed, keyboard-accessible footer.
+for index in range(10):
+    set_text(f'Pagination fixture {index}')
+    wait_for(f'return ext._controller.history.items.length === {index + 1};')
+evaluate('Main.panel.statusArea.dateMenu.menu.open();')
+time.sleep(0.3)
+check('collapsed stack hides pagination', 'return !ext._section._pagination.visible;')
+click('ext._section._expandCover')
+check('ten expanded items fit one page without pagination controls', 'return ext._section._items.get_n_children() === 10 && !ext._section._pagination.visible;')
+set_text('Pagination fixture 10')
+wait_for('return ext._controller.history.items.length === 11;')
+check('eleven expanded items show ten cards and accessible page controls', 'const section = ext._section; return section._items.get_n_children() === 10 && section._pagination.visible && section._pagination.get_parent() === section.actor && section._pageLabel.text === "Page 1 of 2" && !section._previousPageButton.reactive && !section._previousPageButton.can_focus && section._nextPageButton.reactive && section._nextPageButton.can_focus && section._nextPageButton.accessible_name === "Next clipboard page";')
+for index in range(11, 21):
+    set_text(f'Pagination fixture {index}')
+    wait_for(f'return ext._controller.history.items.length === {index + 1};')
+evaluate('global.clipboardCenterBeforePageSelection = ext._controller._ownSource;')
+time.sleep(0.2)
+evaluate(f"const Shell = (await import('gi://Shell')).default; const Gio = (await import('gi://Gio')).default; const file = Gio.File.new_for_path({json.dumps(str(artifacts / 'pagination.png'))}); const stream = file.replace(null, false, Gio.FileCreateFlags.NONE, null); await new Shell.Screenshot().screenshot(false, stream); stream.close(null);")
+evaluate('const adjustment = ext._section._scroll.vadjustment; adjustment.value = adjustment.upper - adjustment.page_size;')
+click('ext._section._nextPageButton')
+check('Next shows the next ten entries in order and resets scrolling without copying or closing', 'const section = ext._section; return section._pageLabel.text === "Page 2 of 3" && JSON.stringify(section._items.get_children().map(card => card.clipboardItemId)) === JSON.stringify(ext._controller.history.items.slice(10, 20).map(item => item.id)) && section._scroll.vadjustment.value === 0 && Main.panel.statusArea.dateMenu.menu.isOpen && ext._controller._ownSource === global.clipboardCenterBeforePageSelection;')
+evaluate('ext._section._nextPageButton.grab_key_focus();')
+press_key('Return')
+check('keyboard Next reaches the partial last page and moves focus away from the disabled button', 'const section = ext._section; return section._pageLabel.text === "Page 3 of 3" && section._items.get_n_children() === 1 && section._items.get_first_child().clipboardItemId === ext._controller.history.items[20].id && !section._nextPageButton.reactive && !section._nextPageButton.can_focus && section._previousPageButton.has_key_focus();')
+press_key('space')
+check('keyboard Previous returns to the preceding page', 'return ext._section._pageLabel.text === "Page 2 of 3" && ext._section._items.get_n_children() === 10;')
+click('ext._section._previousPageButton')
+check('Previous returns to the first page without skipping entries', 'const section = ext._section; return section._pageLabel.text === "Page 1 of 3" && JSON.stringify(section._items.get_children().map(card => card.clipboardItemId)) === JSON.stringify(ext._controller.history.items.slice(0, 10).map(item => item.id)) && !section._previousPageButton.reactive;')
+click('ext._section._nextPageButton')
+evaluate('ext._section._search.set_text("Pagination fixture 1");')
+check('search resets pagination and pages only its matching regular items', 'const section = ext._section; const matches = ext._controller.history.search("Pagination fixture 1"); return section._pageLabel.text === "Page 1 of 2" && matches.length === 11 && section._items.get_n_children() === 10 && JSON.stringify(section._items.get_children().map(card => card.clipboardItemId)) === JSON.stringify(matches.slice(0, 10).map(item => item.id));')
+click('ext._section._nextPageButton')
+evaluate('ext._section._search.set_text("Pagination fixture 20");')
+check('a search with one match hides pagination and resets to its first result', 'return ext._section._page === 0 && !ext._section._pagination.visible && ext._section._items.get_n_children() === 1 && ext._section._items.get_first_child().title === "Pagination fixture 20";')
+evaluate('ext._section._search.set_text("");')
+click('ext._section._nextPageButton')
+click('ext._section._nextPageButton')
+evaluate('ext._controller.remove(ext._controller.history.items[20].id);')
+check('deleting the only item on the last page returns to the preceding valid page', 'return ext._section._pageLabel.text === "Page 2 of 2" && ext._section._items.get_n_children() === 10;')
+evaluate('for (const item of ext._controller.history.items.slice(0, 10)) ext._controller.toggleFavorite(item.id);')
+check('favorites stay outside pagination and ten remaining regular items hide the footer', 'const section = ext._section; return section._favorites.get_n_children() === 10 && section._items.get_n_children() === 10 && section._page === 0 && !section._pagination.visible;')
+evaluate('ext._controller.toggleFavorite(ext._controller.history.items.find(item => item.favorite).id);')
+check('returning a favorite to an eleven-item stack shows pagination again', 'return ext._section._pagination.visible && ext._section._pageLabel.text === "Page 1 of 2" && ext._section._items.get_n_children() === 10;')
+click('ext._section._nextPageButton')
+click('ext._section._collapseButton')
+check('collapse hides pagination and returns to the newest regular item', 'const section = ext._section; return !section._pagination.visible && section._page === 0 && section._items.get_first_child().clipboardItemId === ext._controller.history.items.find(item => !item.favorite).id;')
+press_key('Return')
+check('reopening expanded history starts on page one', 'return ext._section._pagination.visible && ext._section._pageLabel.text === "Page 1 of 2";')
+evaluate('ext._controller.clear(); Main.panel.statusArea.dateMenu.menu.close();')
+check('clearing paginated history removes page controls', 'return !ext._section._pagination.visible && ext._controller.history.items.length === 0;')
+
 # Favorites are standalone native cards, separate from the regular history stack.
 set_text('Favorite text 世界')
 wait_for('return ext._controller.history.items.length === 1;')
@@ -365,16 +436,35 @@ evaluate("const St = (await import('gi://St')).default; St.Clipboard.get_default
 time.sleep(0.5)
 check('oversized content is rejected', 'return ext._controller.history.items.length === 0;')
 
-set_text('Favorite cleared on disable')
+set_text('Favorite saved across restarts 世界')
 wait_for('return ext._controller.history.items.length === 1;')
 evaluate('ext._controller.toggleFavorite(ext._controller.history.items[0].id);')
-evaluate('Main.panel.statusArea.dateMenu.menu.open();')
+evaluate(f"const St = (await import('gi://St')).default; const Gio = (await import('gi://Gio')).default; const [, data] = Gio.File.new_for_path({json.dumps(str(fixture))}).load_contents(null); St.Clipboard.get_default().set_content(St.ClipboardType.CLIPBOARD, 'image/png', new GLib.Bytes(data));")
+wait_for('return ext._controller.history.items.length === 2;')
+set_text('Regular saved history')
+wait_for('return ext._controller.history.items.length === 3;')
+# Pause prevents startup capture from masking a failed disk restore.
+evaluate("ext._settings.set_boolean('paused', true); global.clipboardCenterSavedItems = JSON.stringify(ext._controller.history.items.map(({id, favorite, capturedAt, size}) => ({id, favorite, capturedAt, size}))); Main.panel.statusArea.dateMenu.menu.open();")
 time.sleep(0.3)
 evaluate('global.clipboardCenterOriginalParent = ext._parent; global.clipboardCenterOriginalList = ext._messageList; global.clipboardCenterOldHistory = ext._controller.history; global.clipboardCenterOldSection = ext._section; ext._section._setExpanded(true); await Main.extensionManager.disableExtension("clipboard-center@stone.dev");')
-check('disable during expansion stops animation, restores notifications, and clears favorites', 'return !global.clipboardCenterOldSection._animating && global.clipboardCenterOriginalList.get_parent() === global.clipboardCenterOriginalParent && !global.clipboardCenterOriginalList.has_style_class_name("clipboard-center-notifications") && ext._controller === null && global.clipboardCenterOldHistory.items.length === 0;')
+check('disable during expansion stops animation, restores notifications, and releases history memory', 'return !global.clipboardCenterOldSection._animating && global.clipboardCenterOriginalList.get_parent() === global.clipboardCenterOriginalParent && !global.clipboardCenterOriginalList.has_style_class_name("clipboard-center-notifications") && ext._controller === null && global.clipboardCenterOldHistory.items.length === 0;')
+set_text('Clipboard replaced while extension disabled')
 evaluate('await Main.extensionManager.enableExtension("clipboard-center@stone.dev");')
-wait_for('return ext._controller?.history.items.length === 1;')
-check('extension can be enabled again without restoring favorite status from the clipboard', 'return !ext._controller.history.items[0].favorite && ext._section._favorites.get_n_children() === 0;')
+wait_for('return ext._controller?.history.items.length === 3;')
+check('saved history and favorite status restore with recording paused and a different clipboard', 'return JSON.stringify(ext._controller.history.items.map(({id, favorite, capturedAt, size}) => ({id, favorite, capturedAt, size}))) === global.clipboardCenterSavedItems && ext._section._favorites.get_n_children() === 1 && ext._controller.history.items.some(item => item.text === "Favorite saved across restarts 世界");')
+evaluate('ext._controller.copy(ext._controller.history.items.find(item => item.kind === "image")); Main.panel.statusArea.dateMenu.menu.close();')
+assert subprocess.check_output(['wl-paste', '--type', 'image/png'], timeout=5) == png
+print('PASS image restored from disk pastes with identical bytes into an external client', flush=True)
+evaluate('ext._controller.remove(ext._controller.history.items.find(item => item.favorite).id);')
+restart_extension()
+check('removed favorite stays deleted after restart', 'return ext._controller.history.items.length === 2 && !ext._controller.history.items.some(item => item.favorite);')
+evaluate('ext._controller.clear();')
+restart_extension()
+check('cleared history stays empty after restart', 'return ext._controller.history.items.length === 0;')
+# Disable before a disk read completes, then immediately enable a fresh controller.
+evaluate('ext.disable(); ext.enable(); global.clipboardCenterLoadingController = ext._controller; ext.disable(); ext.enable();')
+wait_for('return ext._controller && !ext._controller._loading;')
+check('rapid enable and disable cancels pending restore without stale updates', 'return ext._controller.history.items.length === 0 && global.clipboardCenterLoadingController._destroyed;')
 shell_libs = glob.glob('/usr/lib*/gnome-shell') + glob.glob('/usr/lib/*/gnome-shell')
 preferences_env = {**os.environ,
     'GI_TYPELIB_PATH': ':'.join(path + '/girepository-1.0' for path in shell_libs),
@@ -388,4 +478,15 @@ preferences = subprocess.run(
 assert preferences.returncode == 0, preferences.stderr
 assert 'PASS native Adwaita preferences open' in preferences.stdout, preferences.stderr
 print('PASS native Adwaita preferences open', flush=True)
+# Leave a committed snapshot for the harness to verify after restarting Shell.
+evaluate("ext._settings.set_boolean('paused', false);")
+set_text('Favorite reboot fixture 世界')
+wait_for('return ext._controller.history.items.length === 1;')
+evaluate('ext._controller.toggleFavorite(ext._controller.history.items[0].id);')
+evaluate(f"const St = (await import('gi://St')).default; const Gio = (await import('gi://Gio')).default; const [, data] = Gio.File.new_for_path({json.dumps(str(fixture))}).load_contents(null); St.Clipboard.get_default().set_content(St.ClipboardType.CLIPBOARD, 'image/png', new GLib.Bytes(data));")
+wait_for('return ext._controller.history.items.length === 2;')
+set_text('Regular reboot fixture')
+wait_for('return ext._controller.history.items.length === 3;')
+evaluate("ext._settings.set_boolean('paused', true);")
+wait_for('return !ext._controller._storage._dirty && !ext._controller._storage._writing;')
 print(f'Shell integration passed. Screenshot: {artifacts / "expanded.png"}', flush=True)

@@ -3,6 +3,7 @@ import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 
 import { chooseFormat, History, MAX_IMAGE_BYTES, MAX_TEXT_BYTES } from './history.js';
+import { HistoryStorage } from './storage.js';
 
 const CLIPBOARD = Meta.SelectionType.SELECTION_CLIPBOARD;
 
@@ -14,6 +15,8 @@ export class ClipboardHistory {
         this._selection = global.display.get_selection();
         this._generation = 0;
         this._destroyed = false;
+        this._loading = true;
+        this._storage = new HistoryStorage();
         this._selectionId = this._selection.connect('owner-changed', (_selection, type, owner) => {
             if (type !== CLIPBOARD) {
                 return;
@@ -28,10 +31,27 @@ export class ClipboardHistory {
             if (key === 'history-limit') {
                 this.history.limit = settings.get_int(key);
                 this.history.trim();
+                if (!this._loading) {
+                    this._storage.save(this.history.items);
+                }
             }
             this._onChanged();
         });
-        this._capture();
+        this._storage.load().then((items) => {
+            if (this._destroyed || !this._loading) {
+                return;
+            }
+            this.history.items = items;
+            this.history.trim();
+            this._loading = false;
+            this._changed();
+            this._capture();
+        });
+    }
+
+    _changed() {
+        this._storage.save(this.history.items);
+        this._onChanged();
     }
 
     _cancelRead() {
@@ -45,7 +65,7 @@ export class ClipboardHistory {
     }
 
     _capture() {
-        if (this._destroyed || this.settings.get_boolean('paused')) {
+        if (this._destroyed || this._loading || this.settings.get_boolean('paused')) {
             return;
         }
         const format = chooseFormat(
@@ -99,7 +119,7 @@ export class ClipboardHistory {
                         item.text = new TextDecoder('utf-8', { fatal: true }).decode(data);
                     }
                     if (this.history.add(item)) {
-                        this._onChanged();
+                        this._changed();
                     }
                 } catch (error) {
                     if (!cancellable.is_cancelled() && !this._destroyed) {
@@ -125,24 +145,26 @@ export class ClipboardHistory {
         this._ownSource = Meta.SelectionSourceMemory.new(mime, item.bytes);
         this._selection.set_owner(CLIPBOARD, this._ownSource);
         this.history.add({ ...item, capturedAt: Date.now() });
-        this._onChanged();
+        this._changed();
     }
 
     toggleFavorite(id) {
         if (this.history.toggleFavorite(id)) {
-            this._onChanged();
+            this._changed();
         }
     }
 
     remove(id) {
         this.history.remove(id);
-        this._onChanged();
+        this._changed();
     }
 
     clear() {
         this._cancelRead();
+        // A clear during startup must also discard the pending disk restore.
+        this._loading = false;
         this.history.clear();
-        this._onChanged();
+        this._changed();
     }
 
     destroy() {
@@ -150,6 +172,7 @@ export class ClipboardHistory {
         this._cancelRead();
         this._selection.disconnect(this._selectionId);
         this.settings.disconnect(this._settingsId);
+        this._storage.destroy();
         this.history.clear();
         // Mutter retains the active selection so the last copied item remains pasteable.
         this._ownSource = null;

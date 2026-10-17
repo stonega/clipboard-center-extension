@@ -35,14 +35,22 @@ gsettings set org.gnome.shell welcome-dialog-last-shown-version '999'
 gsettings set org.gnome.desktop.session idle-delay 0
 gsettings set org.gnome.desktop.screensaver lock-enabled false
 gsettings set org.gnome.desktop.interface enable-animations true
-gnome-shell --headless --wayland --no-x11 --wayland-display clipboard-center-test --virtual-monitor 1280x1000 > "$CLIPBOARD_CENTER_TEST_DIR/shell.log" 2>&1 &
-shell_pid=$!
+start_shell() {
+    gnome-shell --headless --wayland --no-x11 --wayland-display clipboard-center-test --virtual-monitor 1280x1000 > "$CLIPBOARD_CENTER_TEST_DIR/$1" 2>&1 &
+    shell_pid=$!
+    timeout 40 gdbus wait --session org.gnome.Shell
+}
 cleanup() {
     kill "$shell_pid" 2>/dev/null || true
     wait "$shell_pid" 2>/dev/null || true
 }
 trap cleanup EXIT
-timeout 40 gdbus wait --session org.gnome.Shell
+start_shell shell.log
 export WAYLAND_DISPLAY=clipboard-center-test
 python3 "$CLIPBOARD_CENTER_PROJECT/tests/shell-integration.py"
+# A fresh compositor has no clipboard owner or JavaScript state from the first.
+kill "$shell_pid"
+wait "$shell_pid" || true
+start_shell shell-restart.log
+python3 "$CLIPBOARD_CENTER_PROJECT/tests/shell-integration.py" --verify-persistence
 SESSION

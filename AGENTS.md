@@ -17,7 +17,8 @@ the Shell process; GTK/Adwaita belong in the preferences process only.
 - `bun run build`: create an installable extension ZIP in `dist/`.
 - `bun run install:extension`: install for the current user.
 
-Keep clipboard contents local and in memory. Do not log clipboard contents.
+Keep clipboard contents local. Save history only in the private user data directory.
+Do not log clipboard contents.
 Respect sensitive MIME markers. Cancel outstanding reads and disconnect every
 signal on disable. Test enable/disable cleanup in an isolated Shell session.
 
