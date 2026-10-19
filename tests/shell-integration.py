@@ -309,7 +309,7 @@ check('delete removes an item', 'return ext._controller.history.items.length ===
 evaluate('ext._controller.clear();')
 check('clear empties history', 'return ext._controller.history.items.length === 0;')
 
-# Pagination applies to the expanded regular stack, with a fixed, keyboard-accessible footer.
+# Pagination applies to the expanded regular stack, with keyboard-accessible header controls.
 for index in range(10):
     set_text(f'Pagination fixture {index}')
     wait_for(f'return ext._controller.history.items.length === {index + 1};')
@@ -320,7 +320,7 @@ click('ext._section._expandCover')
 check('ten expanded items fit one page without pagination controls', 'return ext._section._items.get_n_children() === 10 && !ext._section._pagination.visible;')
 set_text('Pagination fixture 10')
 wait_for('return ext._controller.history.items.length === 11;')
-check('eleven expanded items show ten cards and accessible page controls', 'const section = ext._section; return section._items.get_n_children() === 10 && section._pagination.visible && section._pagination.get_parent() === section.actor && section._pageLabel.text === "Page 1 of 2" && !section._previousPageButton.reactive && !section._previousPageButton.can_focus && section._nextPageButton.reactive && section._nextPageButton.can_focus && section._nextPageButton.accessible_name === "Next clipboard page";')
+check('eleven expanded items show ten cards and accessible header arrow controls before collapse', 'const section = ext._section; return section._items.get_n_children() === 10 && section._pagination.visible && section._pagination.get_parent() === section._header && section._header.get_child_at_index(1) === section._pagination && section._header.get_child_at_index(2) === section._collapseButton && section._pageLabel.text === "Page 1 of 2" && section._previousPageButton.icon_name === "go-previous-symbolic" && section._nextPageButton.icon_name === "go-next-symbolic" && [section._previousPageButton, section._nextPageButton].every(button => button.has_style_class_name("message-collapse-button")) && !section._previousPageButton.reactive && !section._previousPageButton.can_focus && section._nextPageButton.reactive && section._nextPageButton.can_focus && section._previousPageButton.accessible_name === "Previous clipboard page" && section._nextPageButton.accessible_name === "Next clipboard page";')
 for index in range(11, 21):
     set_text(f'Pagination fixture {index}')
     wait_for(f'return ext._controller.history.items.length === {index + 1};')
@@ -349,7 +349,7 @@ click('ext._section._nextPageButton')
 evaluate('ext._controller.remove(ext._controller.history.items[20].id);')
 check('deleting the only item on the last page returns to the preceding valid page', 'return ext._section._pageLabel.text === "Page 2 of 2" && ext._section._items.get_n_children() === 10;')
 evaluate('for (const item of ext._controller.history.items.slice(0, 10)) ext._controller.toggleFavorite(item.id);')
-check('favorites stay outside pagination and ten remaining regular items hide the footer', 'const section = ext._section; return section._favorites.get_n_children() === 10 && section._items.get_n_children() === 10 && section._page === 0 && !section._pagination.visible;')
+check('favorites stay outside pagination and ten remaining regular items hide the page controls', 'const section = ext._section; return section._favorites.get_n_children() === 10 && section._items.get_n_children() === 10 && section._page === 0 && !section._pagination.visible;')
 evaluate('ext._controller.toggleFavorite(ext._controller.history.items.find(item => item.favorite).id);')
 check('returning a favorite to an eleven-item stack shows pagination again', 'return ext._section._pagination.visible && ext._section._pageLabel.text === "Page 1 of 2" && ext._section._items.get_n_children() === 10;')
 click('ext._section._nextPageButton')

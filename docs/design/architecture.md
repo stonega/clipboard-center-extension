@@ -36,10 +36,11 @@ GTK and Adwaita are used only in the separate preferences process.
   message cards above the regular stack, and can be copied, unfavorited, or
   removed while the stack is collapsed. A shared scroll view bounds both
   favorites and regular history. Search filters both groups. Expanded regular
-  history is paginated in groups of 10 matching items. A fixed footer outside the
-  scroll view shows Previous/Next buttons and the page count only when expanded
-  with multiple pages. Search and collapse reset to page 1; history changes clamp
-  the current page to the remaining range. Favorites are not paginated.
+  history is paginated in groups of 10 matching items. The header shows native
+  Previous/Next icon buttons and the page count before the collapse button only
+  when expanded with multiple pages. Search and collapse reset to page 1;
+  history changes clamp the current page to the remaining range. Favorites are
+  not paginated.
   Image thumbnails use `Gio.BytesIcon`; original bytes are retained for copying.
 - `src/expander.js` interpolates card positions and preferred heights with an
   animatable layout property, following Shell 51's `NotificationMessageGroup`

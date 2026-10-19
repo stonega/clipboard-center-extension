@@ -11,7 +11,8 @@ notification groups, respecting your desktop animation setting.
 Expanded history has a Clipboard title and a collapse button above the search.
 The scrollbar stays hidden; use the mouse wheel or touchpad to scroll.
 Expanded stacks show up to 10 regular items per page. When more than 10 match,
-Previous and Next buttons and a page count appear below the scroll area.
+Previous and Next arrow buttons and a page count appear in the header, just
+before the collapse button.
 The buttons are hidden when the stack is collapsed. Searching or collapsing
 returns to page 1. Favorites stay above the stack and do not count toward its pages.
 Click the collapse button to return to the stack and clear the search while

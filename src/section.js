@@ -47,9 +47,38 @@ export class ClipboardSection {
             new St.Label({
                 style_class: 'message-group-title',
                 text: 'Clipboard',
+                x_expand: true,
                 y_align: Clutter.ActorAlign.CENTER,
             }),
         );
+        this._pagination = new St.BoxLayout({
+            style_class: 'clipboard-center-pagination',
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        this._previousPageButton = new St.Button({
+            style_class: 'message-collapse-button',
+            icon_name: 'go-previous-symbolic',
+            accessible_name: 'Previous clipboard page',
+            can_focus: true,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        this._previousPageButton.connect('clicked', () => this._changePage(-1));
+        this._pagination.add_child(this._previousPageButton);
+        this._pageLabel = new St.Label({
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        this._pagination.add_child(this._pageLabel);
+        this._nextPageButton = new St.Button({
+            style_class: 'message-collapse-button',
+            icon_name: 'go-next-symbolic',
+            accessible_name: 'Next clipboard page',
+            can_focus: true,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        this._nextPageButton.connect('clicked', () => this._changePage(1));
+        this._pagination.add_child(this._nextPageButton);
+        this._header.add_child(this._pagination);
         this._collapseButton = new St.Button({
             style_class: 'message-collapse-button',
             icon_name: 'group-collapse-symbolic',
@@ -57,7 +86,6 @@ export class ClipboardSection {
             can_focus: true,
             x_align: Clutter.ActorAlign.END,
             y_align: Clutter.ActorAlign.CENTER,
-            x_expand: true,
             y_expand: true,
         });
         this._collapseButton.connect('clicked', () => this._setExpanded(false));
@@ -124,34 +152,6 @@ export class ClipboardSection {
             child: this._content,
         });
         this.actor.add_child(this._scroll);
-
-        this._pagination = new St.BoxLayout({
-            style_class: 'clipboard-center-pagination',
-            x_expand: true,
-        });
-        this._previousPageButton = new St.Button({
-            style_class: 'button clipboard-center-page-button',
-            label: 'Previous',
-            accessible_name: 'Previous clipboard page',
-            can_focus: true,
-        });
-        this._previousPageButton.connect('clicked', () => this._changePage(-1));
-        this._pagination.add_child(this._previousPageButton);
-        this._pageLabel = new St.Label({
-            x_expand: true,
-            x_align: Clutter.ActorAlign.CENTER,
-            y_align: Clutter.ActorAlign.CENTER,
-        });
-        this._pagination.add_child(this._pageLabel);
-        this._nextPageButton = new St.Button({
-            style_class: 'button clipboard-center-page-button',
-            label: 'Next',
-            accessible_name: 'Next clipboard page',
-            can_focus: true,
-        });
-        this._nextPageButton.connect('clicked', () => this._changePage(1));
-        this._pagination.add_child(this._nextPageButton);
-        this.actor.add_child(this._pagination);
 
         // Cover the whole collapsed stack, including card controls and exposed edges.
         this._expandCover = new St.Button({

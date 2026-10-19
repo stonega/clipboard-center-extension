@@ -10,7 +10,7 @@ widgets and your Shell theme.
 - Click the stack to expand history, then click a card to copy its original content.
 - Star favorites to keep them as standalone cards above the collapsed stack.
 - Browse or search history, and scroll without a visible scrollbar. Expand an image for a larger preview.
-- Page through expanded stacks 10 items at a time with Previous/Next buttons.
+- Page through expanded stacks 10 items at a time with header arrow buttons.
 - Remove individual entries, or pause recording in preferences.
 - Configure the regular history limit (5–200 items; default 50) and image capture.
 - Keep text, images, and favorites across screen lock, logout, and reboot.

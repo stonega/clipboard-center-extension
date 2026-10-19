@@ -37,12 +37,7 @@
 }
 
 .clipboard-center-pagination {
-    spacing: 8px;
-    margin: 8px 4px 0;
-}
-
-.clipboard-center-page-button {
-    padding: 6px 12px;
+    spacing: 4px;
 }
 
 .clipboard-center-stack .clipboard-center-back-1 {

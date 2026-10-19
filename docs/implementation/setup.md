@@ -27,7 +27,7 @@ The test also checks intermediate animation frames, rapid direction changes,
 menu closure during a transition, and the desktop's disabled-animation setting.
 It checks the 10/11-item pagination boundary, next/previous mouse and keyboard
 navigation, search, favorites, deletion on the last page, and collapse resets.
-`pagination.png` captures the expanded stack with its fixed page footer.
+`pagination.png` captures the expanded stack with page controls in its header.
 It disables the extension mid-transition before enabling it again.
 It verifies persistence with recording paused and a different clipboard, then
 restarts the entire isolated Shell process to check text, images, and favorites
