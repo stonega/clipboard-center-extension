@@ -41,7 +41,9 @@ GTK and Adwaita are used only in the separate preferences process.
   when expanded with multiple pages. Search and collapse reset to page 1;
   history changes clamp the current page to the remaining range. Favorites are
   not paginated.
-  Image thumbnails use `Gio.BytesIcon`; original bytes are retained for copying.
+  Image thumbnails use `Gio.BytesIcon`. Expanded previews scale the decoded texture
+  uniformly to cover the frame and crop overflow at the center, preserving its
+  aspect ratio. Original bytes are retained for copying.
 - `src/expander.js` interpolates card positions and preferred heights with an
   animatable layout property, following Shell 51's `NotificationMessageGroup`
   and `MessageGroupExpanderLayout`. Expansion and collapse use the same 200 ms

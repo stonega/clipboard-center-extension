@@ -31,8 +31,9 @@ closes; return to the application and paste normally. Copying does not simulate
 typing or automatically paste into an application.
 
 The card's arrow, to the left of its favorite star, expands its preview.
-An image has a larger preview; longer
-text can expand to show additional lines. The close button removes that item
+An image has a larger preview that fills its frame without stretching, cropping
+the edges when needed. Long text can expand to show additional lines.
+The close button removes that item
 from history. Removing an item does not erase the current system clipboard.
 
 Open preferences from the Extensions app, or run

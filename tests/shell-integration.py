@@ -9,7 +9,7 @@ import time
 import zlib
 from pathlib import Path
 
-from gi.repository import Gio, GLib
+from gi.repository import GdkPixbuf, Gio, GLib
 
 PREFIX = "const Main = (await import('resource:///org/gnome/shell/ui/main.js')); const GLib = (await import('gi://GLib')).default; const ext = Main.extensionManager.lookup('clipboard-center@stone.dev').stateObj; "
 connection = Gio.bus_get_sync(Gio.BusType.SESSION, None)
@@ -126,19 +126,26 @@ def png_chunk(kind, data):
     return struct.pack('!I', len(data)) + kind + data + struct.pack('!I', zlib.crc32(kind + data))
 
 
-width, height = 440, 220
-rows = bytearray()
-for y in range(height):
-    rows.append(0)
-    for x in range(width):
-        if 60 < x < 380 and 45 < y < 175:
-            rows.extend((75, 145, 230))
-        else:
-            rows.extend((25, 38, 62))
-png = b'\x89PNG\r\n\x1a\n' + png_chunk(b'IHDR', struct.pack('!2I5B', width, height, 8, 2, 0, 0, 0)) + png_chunk(b'IDAT', zlib.compress(bytes(rows))) + png_chunk(b'IEND', b'')
+def preview_png(width, height):
+    rows = bytearray()
+    for y in range(height):
+        rows.append(0)
+        for x in range(width):
+            if abs(x - width / 2) < 20 and abs(y - height / 2) < 20:
+                rows.extend((240, 185, 70))
+            elif width * 0.15 < x < width * 0.85 and height * 0.2 < y < height * 0.8:
+                rows.extend((75, 145, 230))
+            else:
+                rows.extend((25, 38, 62))
+    return b'\x89PNG\r\n\x1a\n' + png_chunk(b'IHDR', struct.pack('!2I5B', width, height, 8, 2, 0, 0, 0)) + png_chunk(b'IDAT', zlib.compress(bytes(rows))) + png_chunk(b'IEND', b'')
+
+
+png = preview_png(440, 220)
 artifacts = Path(os.environ['CLIPBOARD_CENTER_TEST_DIR'])
 fixture = artifacts / 'fixture.png'
 fixture.write_bytes(png)
+portrait_fixture = artifacts / 'portrait.png'
+portrait_fixture.write_bytes(preview_png(220, 440))
 evaluate(f"const St = (await import('gi://St')).default; const Gio = (await import('gi://Gio')).default; const [, data] = Gio.File.new_for_path({json.dumps(str(fixture))}).load_contents(null); St.Clipboard.get_default().set_content(St.ClipboardType.CLIPBOARD, 'image/png', new GLib.Bytes(data));")
 wait_for("return ext._controller.history.items[0]?.kind === 'image';")
 check('captures exact PNG bytes', f'return ext._controller.history.items[0].bytes.get_size() === {len(png)};')
@@ -282,6 +289,57 @@ evaluate('ext._section._search.set_text("世界");')
 check('search filters clipboard history', 'return ext._section._items.get_n_children() === 1 && ext._section._items.get_first_child().title.startsWith("Clipboard Center");')
 evaluate('ext._section._search.set_text(""); ext._section._items.get_first_child().expand(false);')
 time.sleep(0.5)
+wait_for('return !!ext._section._items.get_first_child()._actionBin.child.get_first_child()?.content;')
+check('landscape preview preserves its 2:1 aspect ratio and center-crops horizontally to cover the frame', '''
+    const preview = ext._section._items.get_first_child()._actionBin.child;
+    const image = preview.get_first_child();
+    const [x, y, width, height] = preview.get_clip();
+    return preview.has_clip && Math.abs(image.width / image.height - 2) < 0.01 &&
+        image.width > width && Math.abs(image.height - height) < 1 &&
+        Math.abs(image.x + image.width / 2 - x - width / 2) < 1 &&
+        Math.abs(image.y - y) < 1;
+''')
+evaluate(f'''
+    const St = (await import('gi://St')).default;
+    const Gio = (await import('gi://Gio')).default;
+    const Preview = ext._section._items.get_first_child()._actionBin.child.constructor;
+    const [, data] = Gio.File.new_for_path({json.dumps(str(portrait_fixture))}).load_contents(null);
+    global.clipboardCenterPortraitPreview = new Preview({{
+        gicon: new Gio.BytesIcon({{bytes: new GLib.Bytes(data)}}),
+        icon_size: 220,
+        style_class: 'clipboard-center-image-preview',
+        x: 20, y: 50,
+    }});
+    Main.uiGroup.add_child(global.clipboardCenterPortraitPreview);
+''')
+wait_for('return !!global.clipboardCenterPortraitPreview.get_first_child()?.content && global.clipboardCenterPortraitPreview.has_clip;')
+check('portrait preview preserves its 1:2 aspect ratio and center-crops vertically to cover the frame', '''
+    const preview = global.clipboardCenterPortraitPreview;
+    const image = preview.get_first_child();
+    const [x, y, width, height] = preview.get_clip();
+    return Math.abs(image.width / image.height - 0.5) < 0.01 &&
+        Math.abs(image.width - width) < 1 && image.height > height &&
+        Math.abs(image.x - x) < 1 &&
+        Math.abs(image.y + image.height / 2 - y - height / 2) < 1;
+''')
+evaluate(f"const Shell = (await import('gi://Shell')).default; const Gio = (await import('gi://Gio')).default; const file = Gio.File.new_for_path({json.dumps(str(artifacts / 'image-previews.png'))}); const stream = file.replace(null, false, Gio.FileCreateFlags.NONE, null); await new Shell.Screenshot().screenshot(false, stream); stream.close(null); global.clipboardCenterPortraitPreview.destroy(); delete global.clipboardCenterPortraitPreview;")
+# A square marker must remain square in the rendered pixels, not just the actor allocation.
+rendered = GdkPixbuf.Pixbuf.new_from_file(str(artifacts / 'image-previews.png'))
+pixels = rendered.get_pixels()
+stride, channels = rendered.get_rowstride(), rendered.get_n_channels()
+markers = [[], []]
+for y in range(50, 500):
+    for x in range(20, 700):
+        offset = y * stride + x * channels
+        red, green, blue = pixels[offset:offset + 3]
+        if red > 220 and 150 < green < 210 and blue < 110:
+            markers[x >= 250].append((x, y))
+for label, points in zip(('portrait', 'landscape'), markers):
+    assert points, f'{label} preview marker was not rendered'
+    marker_width = max(x for x, y in points) - min(x for x, y in points) + 1
+    marker_height = max(y for x, y in points) - min(y for x, y in points) + 1
+    assert abs(marker_width / marker_height - 1) < 0.1, (label, marker_width, marker_height)
+print('PASS landscape and portrait preview pixels preserve a square marker without stretching', flush=True)
 check('expanded history overflows without a visible scrollbar', 'const scroll = ext._section._scroll; return scroll.vadjustment.upper > scroll.vadjustment.page_size && !scroll.get_vscrollbar_visible() && !scroll.get_hscrollbar_visible();')
 point_at('ext._section._scroll')
 evaluate('const Clutter = (await import("gi://Clutter")).default; global.clipboardCenterTestPointer.notify_discrete_scroll(GLib.get_monotonic_time(), Clutter.ScrollDirection.DOWN, Clutter.ScrollSource.WHEEL);')

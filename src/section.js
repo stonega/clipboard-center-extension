@@ -12,6 +12,46 @@ import { textPreview } from './history.js';
 
 const PAGE_SIZE = 10;
 
+const ClipboardImagePreview = GObject.registerClass(
+    class ClipboardCenterImagePreview extends St.Icon {
+        _init(params) {
+            super._init(params);
+            const prepareImage = (image) => {
+                image.x_align = Clutter.ActorAlign.FILL;
+                image.y_align = Clutter.ActorAlign.FILL;
+                image.content_gravity = Clutter.ContentGravity.RESIZE_FILL;
+            };
+            this.connect('child-added', (_icon, image) => prepareImage(image));
+            this.get_children().forEach(prepareImage);
+        }
+
+        vfunc_allocate(box) {
+            super.vfunc_allocate(box);
+            const image = this.get_first_child();
+            const texture = image?.content?.get_texture();
+            if (!texture) return;
+
+            const frame = this.get_theme_node().get_content_box(box);
+            const width = frame.get_width();
+            const height = frame.get_height();
+            if (width <= 0 || height <= 0) return;
+
+            // St.Icon requests a square even when the decoded texture is rectangular.
+            // Scale uniformly to cover that frame, then crop the centered overflow.
+            const scale = Math.max(width / texture.get_width(), height / texture.get_height());
+            const imageWidth = texture.get_width() * scale;
+            const imageHeight = texture.get_height() * scale;
+            const imageBox = new Clutter.ActorBox();
+            imageBox.x1 = frame.x1 + (width - imageWidth) / 2;
+            imageBox.y1 = frame.y1 + (height - imageHeight) / 2;
+            imageBox.x2 = imageBox.x1 + imageWidth;
+            imageBox.y2 = imageBox.y1 + imageHeight;
+            image.allocate(imageBox);
+            this.set_clip(frame.x1, frame.y1, width, height);
+        }
+    },
+);
+
 const ClipboardMessage = GObject.registerClass(
     class ClipboardCenterMessage extends MessageList.Message {
         canClose() {
@@ -394,7 +434,7 @@ export class ClipboardSection {
             message.icon = icon;
             message.title = `${item.mime.split('/')[1].toUpperCase()} image`;
             message.setActionArea(
-                new St.Icon({
+                new ClipboardImagePreview({
                     gicon: icon,
                     icon_size: 220,
                     style_class: 'clipboard-center-image-preview',

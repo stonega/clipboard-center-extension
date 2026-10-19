@@ -28,6 +28,8 @@ menu closure during a transition, and the desktop's disabled-animation setting.
 It checks the 10/11-item pagination boundary, next/previous mouse and keyboard
 navigation, search, favorites, deletion on the last page, and collapse resets.
 `pagination.png` captures the expanded stack with page controls in its header.
+`image-previews.png` captures landscape and portrait previews with centered cover
+scaling; both are checked for preserved aspect ratio and cropped overflow.
 It disables the extension mid-transition before enabling it again.
 It verifies persistence with recording paused and a different clipboard, then
 restarts the entire isolated Shell process to check text, images, and favorites
