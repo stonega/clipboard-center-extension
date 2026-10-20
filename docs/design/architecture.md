@@ -34,9 +34,10 @@ GTK and Adwaita are used only in the separate preferences process.
   search. The scroll view uses the external scrollbar policy to hide its
   scrollbar while preserving scrolling. Favorites appear once as standalone
   message cards above the regular stack, and can be copied, unfavorited, or
-  removed while the stack is collapsed. A shared scroll view bounds both
-  favorites and regular history. Search filters both groups. Expanded regular
-  history is paginated in groups of 10 matching items. The header shows native
+  removed while the stack is collapsed. The shared scroll view bounds collapsed
+  favorites; expanded history removes that height cap to show the complete page.
+  Search filters both groups. Expanded regular history is paginated in groups
+  of 5 matching items. The header shows native
   Previous/Next icon buttons and the page count before the collapse button only
   when expanded with multiple pages. Search and collapse reset to page 1;
   history changes clamp the current page to the remaining range. Favorites are

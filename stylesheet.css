@@ -36,8 +36,9 @@
     spacing: 8px;
 }
 
+.clipboard-center-header,
 .clipboard-center-pagination {
-    spacing: 4px;
+    spacing: 8px;
 }
 
 .clipboard-center-stack .clipboard-center-back-1 {

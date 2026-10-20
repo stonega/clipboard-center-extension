@@ -10,7 +10,7 @@ import * as MessageList from 'resource:///org/gnome/shell/ui/messageList.js';
 import { ClipboardExpanderLayout, ClipboardStack, EXPANSION_TIME } from './expander.js';
 import { textPreview } from './history.js';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 const ClipboardImagePreview = GObject.registerClass(
     class ClipboardCenterImagePreview extends St.Icon {
@@ -80,7 +80,7 @@ export class ClipboardSection {
         });
         this.actor.add_child(this._controls);
         this._header = new St.BoxLayout({
-            style_class: 'message-group-header',
+            style_class: 'message-group-header clipboard-center-header',
             x_expand: true,
         });
         this._header.add_child(
@@ -295,7 +295,7 @@ export class ClipboardSection {
               ? this._nextPageButton
               : null;
         this._pagination.visible = this._expanded && this._pageCount > 1;
-        this._pageLabel.text = `Page ${this._page + 1} of ${this._pageCount}`;
+        this._pageLabel.text = `${this._page + 1} of ${this._pageCount}`;
         for (const [button, enabled] of [
             [this._previousPageButton, this._page > 0],
             [this._nextPageButton, this._page < this._pageCount - 1],
@@ -347,7 +347,10 @@ export class ClipboardSection {
         this._favorites.visible = favorites.length > 0;
         this._stack.visible = shown.length > 0 || favorites.length === 0;
         this._expandCover.visible = !this._expanded && items.length > 0;
-        this._scroll.style = `max-height: ${this._expanded || this._animating || favorites.length > 0 ? 340 : 180}px;`;
+        this._scroll.style =
+            this._expanded || this._animating
+                ? ''
+                : `max-height: ${favorites.length > 0 ? 340 : 180}px;`;
         // The resting stack only retains its top card; keep the back-card reveal.
         this._items.style = `margin-bottom: ${!this._expanded && !this._animating ? depth * 6 : 0}px;`;
         this._backCards[1].style = `margin-bottom: ${Math.max(0, depth - 1) * 6}px;`;

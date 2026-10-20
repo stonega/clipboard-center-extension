@@ -5,14 +5,14 @@ the left. Copy text or an image in an application to add an item.
 
 The newest item is visible by default. The cards behind it indicate more history.
 Hover over the stack to highlight it like an individual card.
-Click anywhere on the stack to expand history, then scroll or use search.
+Click anywhere on the stack to expand history, then use the page buttons or search.
 The stack expands and collapses with the same smooth timing as GNOME's
 notification groups, respecting your desktop animation setting.
 Expanded history has a Clipboard title and a collapse button above the search.
-The scrollbar stays hidden; use the mouse wheel or touchpad to scroll.
-Expanded stacks show up to 10 regular items per page. When more than 10 match,
-Previous and Next arrow buttons and a page count appear in the header, just
-before the collapse button.
+Expanded history grows to show all five cards on each page.
+Expanded stacks show up to 5 regular items per page. When more than 5 match,
+Previous and Next arrow buttons and a page count such as `1 of 2` appear in the
+header, just before the collapse button.
 The buttons are hidden when the stack is collapsed. Searching or collapsing
 returns to page 1. Favorites stay above the stack and do not count toward its pages.
 Click the collapse button to return to the stack and clear the search while
@@ -24,7 +24,7 @@ Click a card's star button in expanded history to add it to favorites. Favorites
 appear as separate cards above the regular stack, including when history is
 collapsed. Click a favorite to copy it directly, use its star to return it to
 regular history, or use its close button to remove it. Search includes favorites.
-Scroll to reach more cards when needed.
+Scroll to reach more favorites when needed.
 
 Once expanded, click a card to put its original text or image back on the clipboard. The menu
 closes; return to the application and paste normally. Copying does not simulate
