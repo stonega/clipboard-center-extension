@@ -14,16 +14,17 @@ Expanded stacks show up to 5 regular items per page. When more than 5 match,
 Previous and Next arrow buttons and a page count such as `1 of 2` appear in the
 header, just before the collapse button.
 The buttons are hidden when the stack is collapsed. Searching or collapsing
-returns to page 1. Favorites stay above the stack and do not count toward its pages.
+returns to page 1. Favorites are hidden while history is expanded and do not
+count toward its pages or search results.
 Click the collapse button to return to the stack and clear the search while
 keeping the menu open. Press Escape or close the menu to collapse it as well.
 Keyboard users can focus the stack and press Enter or Space.
 Search matches text and image format names such as `image`, `png`, or `jpeg`.
 
 Click a card's star button in expanded history to add it to favorites. Favorites
-appear as separate cards above the regular stack, including when history is
-collapsed. Click a favorite to copy it directly, use its star to return it to
-regular history, or use its close button to remove it. Search includes favorites.
+appear as separate cards above the regular stack when history is collapsed.
+Click a favorite to copy it directly, use its star to return it to
+regular history, or use its close button to remove it.
 Scroll to reach more favorites when needed.
 
 Once expanded, click a card to put its original text or image back on the clipboard. The menu

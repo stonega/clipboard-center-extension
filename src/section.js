@@ -328,7 +328,9 @@ export class ClipboardSection {
                 }
             }
         }
-        const matches = this._controller.history.search(this._search.get_text());
+        const matches = this._controller.history
+            .search(this._search.get_text())
+            .filter((item) => !this._expanded || !item.favorite);
         const favorites = matches.filter((item) => item.favorite);
         const items = matches.filter((item) => !item.favorite);
         this._pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
@@ -427,8 +429,10 @@ export class ClipboardSection {
             );
             if (!this._expanded && !item.favorite && this._expandCover.visible) {
                 this._expandCover.grab_key_focus();
-            } else {
-                updated?.favoriteButton.grab_key_focus();
+            } else if (updated) {
+                updated.favoriteButton.grab_key_focus();
+            } else if (this._expanded) {
+                this._search.grab_key_focus();
             }
         });
 

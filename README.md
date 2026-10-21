@@ -8,7 +8,7 @@ widgets and your Shell theme.
 
 - Copy and restore text and images, including screenshots.
 - Click the stack to expand history, then click a card to copy its original content.
-- Star favorites to keep them as standalone cards above the collapsed stack.
+- Star favorites to keep them as standalone cards above the collapsed stack, hidden while history is expanded.
 - Browse or search history, and scroll without a visible scrollbar. Expand an image for a larger preview.
 - Page through expanded stacks 10 items at a time with header arrow buttons.
 - Remove individual entries, or pause recording in preferences.

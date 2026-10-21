@@ -35,9 +35,10 @@ GTK and Adwaita are used only in the separate preferences process.
   scrollbar while preserving scrolling. Favorites appear once as standalone
   message cards above the regular stack, and can be copied, unfavorited, or
   removed while the stack is collapsed. The shared scroll view bounds collapsed
-  favorites; expanded history removes that height cap to show the complete page.
-  Search filters both groups. Expanded regular history is paginated in groups
-  of 5 matching items. The header shows native
+  favorites; expanded history hides favorites and removes that height cap to
+  show the complete regular page. Search filters regular items only.
+  Expanded regular history is paginated in groups of 5 matching items.
+  The header shows native
   Previous/Next icon buttons and the page count before the collapse button only
   when expanded with multiple pages. Search and collapse reset to page 1;
   history changes clamp the current page to the remaining range. Favorites are
@@ -48,10 +49,11 @@ GTK and Adwaita are used only in the separate preferences process.
 - `src/expander.js` interpolates card positions and preferred heights with an
   animatable layout property, following Shell 51's `NotificationMessageGroup`
   and `MessageGroupExpanderLayout`. Expansion and collapse use the same 200 ms
-  `EASE_OUT_QUAD` timing. Cards survive toggles so their previews can collapse
-  with Shell's own animation. Search and the header reveal with the stack;
-  favorites stay outside it. Reversing a transition starts at its current
-  progress. Closing the menu resets immediately, and disable cancels transitions.
+  `EASE_OUT_QUAD` timing. Regular cards survive toggles so their previews can
+  collapse with Shell's own animation. Search and the header reveal with the
+  stack; favorites are only shown while collapsed. Reversing a transition starts
+  at its current progress. Closing the menu resets immediately, and disable
+  cancels transitions.
   Shell's easing helpers respect the desktop animation setting.
 - `src/preferences.js` binds the three settings to Adwaita controls.
 
