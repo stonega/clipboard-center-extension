@@ -2,6 +2,8 @@
 
 Click the clock in the top bar. Clipboard appears above the notifications on
 the left. Copy text or an image in an application to add an item.
+A divider separates clipboard history from notifications while history contains
+items. It disappears when history is empty.
 
 The newest item is visible by default. The cards behind it indicate more history.
 Hover over the stack to highlight it like an individual card.

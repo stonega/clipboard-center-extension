@@ -18,6 +18,10 @@
     margin-left: 12px;
 }
 
+.clipboard-center-divider {
+    margin: 12px 4px 0;
+}
+
 .clipboard-center-expand-cover {
     border-radius: 18px;
 }

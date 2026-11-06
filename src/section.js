@@ -193,6 +193,19 @@ export class ClipboardSection {
         });
         this.actor.add_child(this._scroll);
 
+        this._divider = new St.BoxLayout({
+            style_class: 'popup-separator-menu-item clipboard-center-divider',
+            x_expand: true,
+            visible: false,
+        });
+        this._divider.add_child(
+            new St.Widget({
+                style_class: 'popup-separator-menu-item-separator',
+                x_expand: true,
+            }),
+        );
+        this.actor.add_child(this._divider);
+
         // Cover the whole collapsed stack, including card controls and exposed edges.
         this._expandCover = new St.Button({
             style_class: 'clipboard-center-expand-cover',
@@ -317,6 +330,7 @@ export class ClipboardSection {
     }
 
     _renderItems(preserveMessages = false) {
+        this._divider.visible = this._controller.history.items.length > 0;
         const previous = new Map();
         for (const container of [this._items, this._favorites]) {
             for (const card of container.get_children()) {
