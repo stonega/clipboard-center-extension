@@ -11,12 +11,15 @@ export default class ClipboardCenterExtension extends Extension {
     enable() {
         const dateMenu = Main.panel.statusArea.dateMenu;
         this._messageList = dateMenu._messageList;
+        this._messageListVisible = this._messageList.visible;
         this._parent = this._messageList.get_parent();
         this._index = this._parent.get_children().indexOf(this._messageList);
         this._settings = this.getSettings();
         try {
             this._controller = new ClipboardHistory(this._settings, () => this._section?.sync());
-            this._section = new ClipboardSection(this._controller);
+            this._section = new ClipboardSection(this._controller, (expanded) => {
+                this._messageList.visible = !expanded && this._messageListVisible;
+            });
 
             // Keep GNOME's notification list intact, below the clipboard section.
             this._column = new St.BoxLayout({
@@ -56,11 +59,13 @@ export default class ClipboardCenterExtension extends Extension {
             this._parent.insert_child_at_index(this._messageList, this._index);
         }
         this._messageList?.remove_style_class_name('clipboard-center-notifications');
+        if (this._messageList) this._messageList.visible = this._messageListVisible;
         this._section?.destroy();
         this._section = null;
         this._column?.destroy();
         this._column = null;
         this._messageList = null;
+        this._messageListVisible = null;
         this._parent = null;
         this._menu = null;
         this._settings = null;

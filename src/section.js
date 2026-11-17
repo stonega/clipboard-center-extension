@@ -61,7 +61,8 @@ const ClipboardMessage = GObject.registerClass(
 );
 
 export class ClipboardSection {
-    constructor(controller) {
+    constructor(controller, onExpandedChanged) {
+        this._onExpandedChanged = onExpandedChanged;
         this._controller = controller;
         this._expanded = false;
         this._animating = false;
@@ -243,6 +244,7 @@ export class ClipboardSection {
         if (expanded === this._expanded && animate) return;
         this._stopExpansion();
         this._expanded = expanded;
+        this._onExpandedChanged(expanded);
         this._animating = animate && this.actor.mapped;
         if (!expanded) {
             this._page = 0;
@@ -330,7 +332,7 @@ export class ClipboardSection {
     }
 
     _renderItems(preserveMessages = false) {
-        this._divider.visible = this._controller.history.items.length > 0;
+        this._divider.visible = !this._expanded && this._controller.history.items.length > 0;
         const previous = new Map();
         for (const container of [this._items, this._favorites]) {
             for (const card of container.get_children()) {
@@ -506,5 +508,6 @@ export class ClipboardSection {
     destroy() {
         this._stopExpansion();
         this.actor.destroy();
+        this._onExpandedChanged = null;
     }
 }

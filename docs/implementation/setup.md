@@ -25,6 +25,8 @@ temporary directory for inspection. Missing desktop services can produce
 warnings in a headless session; extension errors and test failures must be fixed.
 The test also checks intermediate animation frames, rapid direction changes,
 menu closure during a transition, and the desktop's disabled-animation setting.
+It verifies that expanding history hides notifications and the divider, including
+new notifications received while expanded, and restores them on collapse or disable.
 It checks the 5/6-item pagination boundary, full-page visibility, next/previous
 mouse and keyboard navigation, search, favorites, deletion on the last page,
 and collapse resets.

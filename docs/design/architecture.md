@@ -8,7 +8,10 @@ GTK and Adwaita are used only in the separate preferences process.
 
 - `src/extension.js` wraps the existing calendar message list in a vertical
   column. The clipboard section comes first, followed by the original notification
-  actor. Disable restores that actor to its original parent and position.
+  actor. An expansion callback hides that actor while clipboard history is
+  expanded and restores its visibility on collapse. Notifications continue to
+  arrive while hidden. Disable restores the actor's original parent, position,
+  and visibility.
 - `src/clipboard.js` listens to Mutter's `Meta.Selection::owner-changed` for
   the regular clipboard only. It reads a supported MIME type into a bounded
   memory stream, hashes the bytes, and updates history. No polling is used.
@@ -31,7 +34,8 @@ GTK and Adwaita are used only in the separate preferences process.
   Clipboard title and Shell's native group collapse button above search. The button
   collapses history, clears search, and returns focus to the stack while keeping
   the menu open. Escape or closing the menu also collapses history and clears
-  search. The scroll view uses the external scrollbar policy to hide its
+  search. The divider above notifications is hidden while history is expanded.
+  The scroll view uses the external scrollbar policy to hide its
   scrollbar while preserving scrolling. Favorites appear once as standalone
   message cards above the regular stack, and can be copied, unfavorited, or
   removed while the stack is collapsed. The shared scroll view bounds collapsed

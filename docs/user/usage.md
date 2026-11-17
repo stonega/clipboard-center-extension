@@ -3,11 +3,13 @@
 Click the clock in the top bar. Clipboard appears above the notifications on
 the left. Copy text or an image in an application to add an item.
 A divider separates clipboard history from notifications while history contains
-items. It disappears when history is empty.
+items. It disappears when history is empty or expanded.
 
 The newest item is visible by default. The cards behind it indicate more history.
 Hover over the stack to highlight it like an individual card.
 Click anywhere on the stack to expand history, then use the page buttons or search.
+Notifications hide while history is expanded and reappear when it collapses.
+New notifications still arrive and are available after collapsing history.
 The stack expands and collapses with the same smooth timing as GNOME's
 notification groups, respecting your desktop animation setting.
 Expanded history has a Clipboard title and a collapse button above the search.

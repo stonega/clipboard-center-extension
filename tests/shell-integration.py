@@ -101,6 +101,7 @@ evaluate('Main.panel.statusArea.dateMenu.menu.close(); console.log("CLIPBOARD_TE
 time.sleep(0.3)
 evaluate('await Main.extensionManager.enableExtension("clipboard-center@stone.dev");')
 check('native placement above original notifications', 'return ext._column.get_child_at_index(0) === ext._section.actor && ext._column.get_child_at_index(1) === Main.panel.statusArea.dateMenu._messageList;')
+check('empty collapsed history keeps notifications visible without a divider', 'return ext._messageList.visible && !ext._section._divider.visible;')
 
 set_text('Clipboard Center integration test\nSecond line 世界')
 wait_for('return ext._controller.history.items.length === 1;')
@@ -158,6 +159,7 @@ check('collapsed stack stays compact', 'return ext._section._stack.height <= ext
 evaluate(f"const Shell = (await import('gi://Shell')).default; const Gio = (await import('gi://Gio')).default; const file = Gio.File.new_for_path({json.dumps(str(artifacts / 'collapsed.png'))}); const stream = file.replace(null, false, Gio.FileCreateFlags.NONE, null); await new Shell.Screenshot().screenshot(false, stream); stream.close(null);")
 check('collapsed clipboard stack uses real native message cards', 'return ext._section._items.get_n_children() === 1 && ext._section._items.get_first_child().has_style_class_name("message") && ext._section._backCards.every(card => card.visible);')
 check('collapsed history hides its header and search', 'return !ext._section._header.visible && !ext._section._search.visible;')
+check('collapsed history shows notifications and their divider', 'return ext._messageList.mapped && ext._section._divider.mapped;')
 
 # Observe rendered geometry, rather than merely checking that a transition exists.
 def sample_expansion(expanded):
@@ -192,11 +194,13 @@ assert expansion['before'] < expansion['after'], expansion
 assert any(0 < progress < 1 and expansion['before'] < height < expansion['after']
            for progress, height in expansion['frames']), expansion
 print('PASS expansion renders intermediate heights between the stack and list', flush=True)
+check('expanded history hides notifications and their divider', 'return !ext._messageList.visible && !ext._messageList.mapped && !ext._section._divider.visible;')
 collapse = sample_expansion(False)
 assert collapse['before'] > collapse['after'], collapse
 assert any(0 < progress < 1 and collapse['after'] < height < collapse['before']
            for progress, height in collapse['frames']), collapse
 print('PASS collapse renders intermediate heights before restoring the compact stack', flush=True)
+check('collapsing history restores notifications and their divider', 'return ext._messageList.mapped && ext._section._divider.mapped;')
 check('rapid reversal keeps the current layout and settles expanded', '''
     const section = ext._section;
     section._setExpanded(true);
@@ -213,7 +217,8 @@ check('rapid reversal keeps the current layout and settles expanded', '''
     }));
     return progress > 0 && progress < 1 && progress === collapseStart &&
         progress === expandStart && section._expanded && !section._animating &&
-        section._items.layout_manager.expansion === 1 && section._header.visible;
+        section._items.layout_manager.expansion === 1 && section._header.visible &&
+        !ext._messageList.visible && !section._divider.visible;
 ''')
 evaluate('ext._section._setExpanded(false);')
 wait_for('return !ext._section._animating;')
@@ -224,7 +229,8 @@ check('closing the menu during expansion cancels animation and resets immediatel
     return !section._expanded && !section._animating && !section._controls.visible &&
         section._items.layout_manager.expansion === 0 &&
         !section._items.get_transition('@layout.expansion') &&
-        !section._controls.get_transition('@layout.expansion');
+        !section._controls.get_transition('@layout.expansion') &&
+        ext._messageList.visible && section._divider.visible;
 ''')
 evaluate('Main.panel.statusArea.dateMenu.menu.open();')
 time.sleep(0.3)
@@ -239,10 +245,12 @@ check('disabled desktop animations settle both directions immediately', '''
     const section = ext._section;
     section._setExpanded(true);
     const expanded = !St.Settings.get().enable_animations && !section._animating &&
-        section._items.layout_manager.expansion === 1;
+        section._items.layout_manager.expansion === 1 &&
+        !ext._messageList.visible && !section._divider.visible;
     section._setExpanded(false);
     const collapsed = !section._animating && !section._controls.visible &&
-        section._items.layout_manager.expansion === 0;
+        section._items.layout_manager.expansion === 0 &&
+        ext._messageList.visible && section._divider.visible;
     settings.set_boolean('enable-animations', true);
     return expanded && collapsed;
 ''')
@@ -267,6 +275,7 @@ check('expanded history shows a native title and accessible collapse button abov
 evaluate('ext._section._search.set_text("no matching clipboard item");')
 click('ext._section._collapseButton')
 check('collapse button clears a search with no matches and returns to the stack without copying or closing', 'const section = ext._section; return !section._expanded && !section._header.visible && !section._search.visible && section._search.get_text() === "" && section._items.get_n_children() === 1 && section._backCards.every(card => card.visible) && section._expandCover.has_key_focus() && Main.panel.statusArea.dateMenu.menu.isOpen && ext._controller._ownSource === global.clipboardCenterOriginalSelection && ext._controller.history.items.length === 3;')
+check('collapse after an empty search restores notifications and their divider', 'return ext._messageList.mapped && ext._section._divider.mapped;')
 press_key('Return')
 check('focused stack reopens after collapsing', 'return ext._section._expanded && ext._section._header.visible && ext._section._search.clutter_text.has_key_focus();')
 evaluate('ext._section._search.set_text("世界");')
@@ -342,12 +351,14 @@ for label, points in zip(('portrait', 'landscape'), markers):
 print('PASS landscape and portrait preview pixels preserve a square marker without stretching', flush=True)
 check('expanded history grows to fit its cards without a visible scrollbar', 'const scroll = ext._section._scroll; return scroll.vadjustment.upper <= scroll.vadjustment.page_size + 1 && !scroll.get_vscrollbar_visible() && !scroll.get_hscrollbar_visible();')
 
-evaluate('Main.notify("Notifications stay here", "Clipboard history appears above the notification stack.");')
+evaluate('Main.notify("Received while browsing clipboard", "Available after collapsing clipboard history.");')
 time.sleep(0.5)
+check('new notifications remain queued while expanded without revealing the list or divider', 'return !ext._messageList.visible && !ext._messageList.mapped && !ext._section._divider.visible && Main.messageTray.getSources().some(source => source.notifications.some(notification => notification.title === "Received while browsing clipboard"));')
 evaluate(f"const Shell = (await import('gi://Shell')).default; const Gio = (await import('gi://Gio')).default; const file = Gio.File.new_for_path({json.dumps(str(artifacts / 'expanded.png'))}); const stream = file.replace(null, false, Gio.FileCreateFlags.NONE, null); await new Shell.Screenshot().screenshot(false, stream); stream.close(null);")
 click('ext._section._items.get_first_child().titleLabel')
 check('click copies image and closes menu', 'return !Main.panel.statusArea.dateMenu.menu.isOpen && ext._controller.history.items[0].kind === "image";')
 check('closing the menu resets the stack', 'return !ext._section._expanded && !ext._section._header.visible && !ext._section._search.visible;')
+check('copying an item restores notification visibility', 'return ext._messageList.visible && ext._section._divider.visible;')
 check('copy does not duplicate own selection', 'return ext._controller.history.items.length === 3;')
 
 # Read back the image through the same public clipboard API a consumer uses.
@@ -508,7 +519,7 @@ wait_for('return ext._controller.history.items.length === 3;')
 evaluate("ext._settings.set_boolean('paused', true); global.clipboardCenterSavedItems = JSON.stringify(ext._controller.history.items.map(({id, favorite, capturedAt, size}) => ({id, favorite, capturedAt, size}))); Main.panel.statusArea.dateMenu.menu.open();")
 time.sleep(0.3)
 evaluate('global.clipboardCenterOriginalParent = ext._parent; global.clipboardCenterOriginalList = ext._messageList; global.clipboardCenterOldHistory = ext._controller.history; global.clipboardCenterOldSection = ext._section; ext._section._setExpanded(true); await Main.extensionManager.disableExtension("clipboard-center@stone.dev");')
-check('disable during expansion stops animation, restores notifications, and releases history memory', 'return !global.clipboardCenterOldSection._animating && global.clipboardCenterOriginalList.get_parent() === global.clipboardCenterOriginalParent && !global.clipboardCenterOriginalList.has_style_class_name("clipboard-center-notifications") && ext._controller === null && global.clipboardCenterOldHistory.items.length === 0;')
+check('disable during expansion stops animation, restores notifications, and releases history memory', 'return !global.clipboardCenterOldSection._animating && global.clipboardCenterOriginalList.visible && global.clipboardCenterOriginalList.get_parent() === global.clipboardCenterOriginalParent && !global.clipboardCenterOriginalList.has_style_class_name("clipboard-center-notifications") && ext._controller === null && global.clipboardCenterOldHistory.items.length === 0;')
 set_text('Clipboard replaced while extension disabled')
 evaluate('await Main.extensionManager.enableExtension("clipboard-center@stone.dev");')
 wait_for('return ext._controller?.history.items.length === 3;')
